@@ -8,7 +8,6 @@ This role bootstraps Debian/Devuan server:
 - Configure APT (sources.list)
 - Install minimal packages (vim, htop...)
 - Install Intel/AMD microcode if needed
-- Install and configure Local DNS with [Unbound](https://www.unbound.net). Feature in beta-test! DO NOT USE IT IN PRODUCTION!
 - Install and configure NTP daemon ([OpenNTPd](http://www.openntpd.org/) or [NTP](http://support.ntp.org/))
 - Add groups, users with SSH key, sudoers
 - Deploy bashrc, vimrc for root
@@ -17,11 +16,19 @@ This role bootstraps Debian/Devuan server:
 - Purge, delete and avoid systemd if wanted
 - Sysctl tuning
 
+Supported Version
+
+| OS                 | Working | Stable (active support) |
+| ------------------ | ------- | ----------------------- |
+| Debian Wheezy (7)  | Yes     | Yes                     |
+| Debian Jessie (8)  | Yes     | Yes                     |
+| Debian Stretch (9) | Yes     | Yes                     |
+| Devuan Jessie (1)  | Yes     | No                      |
 
 Requirements
 ------------
 
-This role needs `sudo` package already installed.
+None.
 
 Role Variables
 --------------
@@ -37,19 +44,20 @@ Theses variables define hostname to configure APT (normal repo and backports):
 ### Role setup
 
 - `dbs_set_hostname`: if true, change hostname
+- `dbs_clean_hosts`: if true, manages `/etc/hosts` file
 - `dbs_set_locale`: if true, configure locales
 - `dbs_set_timezone`: if true, set timezone
 - `dbs_set_ntp`: if true, install and configure OpenNTPd
+- `dbs_set_apt`: if true, configure APT repository
 
 ### System configuration
 
 - `dbs_hostname`: system hostname
 - `dbs_default_locale`: default system locale
 - `dbs_locales`: list of installed locales
-- `dbs_timezone`: system timezone
-- `dbs_sysctl_config: list of kernel parameters, see`: [default/main.yml]
+- `dbs_timezone`: system timezone. If you need a "standard" timezone like UTC, you must use prefix "Etc/" (ex: "Etc/UTC")
+- `dbs_sysctl_config`: hash of kernel parameters, see: [default/main.yml](default/main.yml)
 - `dbs_use_systemd`: delete systemd if set to false (persistent)
-- `dbs_use_unbound`: configure Local DNS and manage network (default is false)
 - `dbs_use_dotfiles`: overwrite root dotfiles (bashrc, screenrc, vimrc)
 - `dbs_uninstall_packages`: packages list to uninstall
 
@@ -83,6 +91,7 @@ Each row have few keys:
 Each row have few keys:
 
 - `name`: (M) username on system
+- `password`: (O) password
 - `shell`: (O) default is /bin/bash
 - `comment`: (O) default is an empty string
 - `sudo`: (O) boolean (true = can sudo)
@@ -90,7 +99,7 @@ Each row have few keys:
 - `groups`: (O) comma separated list of groups
 - `createhome`: (O) yes/no
 - `system`: (O) yes/no (default: no)
-- `ssh_keys`: (M) list of ssh public keys. If you don't need any SSH key, please provide an empty list.
+- `ssh_keys`: (O) ssh public keys list
 - `state`: (O) present/absent (default: present)
 
 (M) Mandatory
@@ -99,9 +108,9 @@ Each row have few keys:
 ### Readonly vars
 
 - `dbs_packages`: list of packages to install
-- `dbs_hostname_files`: list of file where we should substitute bad hostname
 - `dbs_microcode_apt_distribution`: location of package to install microcode
 - `dbs_distro_packages`: list specific package to install (related to OS version)
+- `dbs_is_docker`: boolean. Is true if current is a docker container
 
 Dependencies
 ------------
@@ -116,22 +125,31 @@ Example Playbook
          - { role: HanXHX.debian_bootstrap }
 
 
-About TravisCI
---------------
+About Docker
+------------
 
-Due to Docker limitations, we can't check:
+Due to Docker limitations, theses features are disabled:
 
 - Removing systemd
 - Setting hostname
-- Setting locales
-- Configure unbound
 - Configure sysctl
-
 
 License
 -------
 
 GPLv2
+
+Donation
+--------
+
+If this code helped you, or if you’ve used them for your projects, feel free to buy me some :beers:
+
+- Bitcoin: `1BQwhBeszzWbUTyK4aUyq3SRg7rBSHcEQn`
+- Ethereum: `63abe6b2648fd892816d87a31e3d9d4365a737b5`
+- Litecoin: `LeNDw34zQLX84VvhCGADNvHMEgb5QyFXyD`
+- Monero: `45wbf7VdQAZS5EWUrPhen7Wo4hy7Pa7c7ZBdaWQSRowtd3CZ5vpVw5nTPphTuqVQrnYZC72FXDYyfP31uJmfSQ6qRXFy3bQ`
+
+No crypto-currency? :star: the project is also a way of saying thank you! :sunglasses:
 
 Author Information
 ------------------

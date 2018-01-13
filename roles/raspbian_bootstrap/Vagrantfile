@@ -5,33 +5,59 @@
 
 Vagrant.configure("2") do |config|
 
-  vms = [
-    [ "debian-wheezy", "debian/wheezy64" ],
-    [ "debian-jessie", "debian/jessie64" ],
-    [ "devuan-jessie", "http://vagrant.devuan.org/devuan-jessie-amd64-alpha4.box" ]
+  vms_debian = [
+    { :name => "debian-wheezy",           :box => "debian/wheezy64" },
+    { :name => "debian-jessie",           :box => "debian/jessie64",  :vars => { dbs_use_systemd: true  } },
+    { :name => "debian-jessie-sysvinit",  :box => "debian/jessie64",  :vars => { dbs_use_systemd: false } },
+    { :name => "debian-stretch",          :box => "debian/stretch64", :vars => { dbs_use_systemd: true  } },
+    { :name => "debian-stretch-sysvinit", :box => "debian/stretch64", :vars => { dbs_use_systemd: false } },
+    { :name => "devuan-jessie",           :box => "https://files.devuan.org/devuan_jessie/virtual/devuan_jessie_1.0.0_amd64_vagrant.box" }
   ]
 
-  config.vm.provider "virtualbox" do |v|
-    v.cpus = 1
-    v.memory = 256
-  end
+  conts = [
+    { :name => "docker-debian-wheezy",  :docker => "hanxhx/vagrant-ansible:debian7" },
+    { :name => "docker-debian-jessie",  :docker => "hanxhx/vagrant-ansible:debian8" },
+    { :name => "docker-debian-stretch", :docker => "hanxhx/vagrant-ansible:debian9" }
+  ]
 
-  vms.each do |vm|
-    config.vm.define vm[0] do |m|
-      m.vm.box = vm[1]
-      m.vm.network "private_network", type: "dhcp"
+  config.vm.network "private_network", type: "dhcp"
 
-      if vm[0] == "devuan-jessie"
-          config.ssh.username = "root"
-          config.ssh.password = "devuan"
-          config.vm.guest = :debian
-          config.vm.synced_folder ".", "/vagrant", disabled: true
+  conts.each do |opts|
+    config.vm.define opts[:name] do |m|
+      m.vm.provider "docker" do |d|
+        d.image = opts[:docker]
+        d.remains_running = true
+        d.has_ssh = true
       end
-
       m.vm.provision "ansible" do |ansible|
         ansible.playbook = "tests/test.yml"
         ansible.verbose = 'vv'
-        ansible.sudo = true
+        ansible.become = true
+        ansible.extra_vars = opts[:vars]
+        ansible.raw_arguments = ["-D"]
+      end
+    end
+  end
+
+  vms_debian.each do |opts|
+    config.vm.define opts[:name] do |m|
+      if opts[:name] == "devuan-jessie"
+        m.vm.box_url = opts[:box]
+        m.vm.box = opts[:name]
+        m.vm.provision "shell", inline: "apt-get update -qq && apt-get -y install python"
+      else
+        m.vm.box = opts[:box]
+      end
+      m.vm.provider "virtualbox" do |v|
+        v.cpus = 1
+        v.memory = 256
+      end
+      m.vm.provision "ansible" do |ansible|
+        ansible.playbook = "tests/test.yml"
+        ansible.verbose = 'vv'
+        ansible.become = true
+        ansible.extra_vars = opts[:vars]
+        ansible.raw_arguments = ["-D"]
       end
     end
   end

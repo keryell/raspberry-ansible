@@ -2,7 +2,7 @@
 
 - hosts: all
   vars:
-    dbs_use_unbound: true
+    dbs_timezone: 'America/Havana'
     dbs_uninstall_packages:
       - 'atop'
     dbs_groups:
@@ -21,14 +21,29 @@
         groups: 'superdaemon'
         shell: '/usr/sbin/nologin'
         sudo: false
-        ssh_keys: []
+        password: '1a2b3c'
       - name: 'regis'
-        ssh_keys: []
         state: 'absent'
     dbs_ntp_pkg: 'ntp'
     dbs_locales:
       - 'en_US.UTF-8'
       - 'fr_FR.UTF-8'
+  pre_tasks:
+    - name: SETUP
+      action: setup
+      register: prout
+    - name: DEBUG | All vars
+      debug: var=prout
   roles:
     - ../../
-
+  post_tasks:
+    - name: -- TEST -- COMMAND | Get timezone
+      command: cat /etc/timezone
+      changed_when: false
+      register: ntz
+    - name: -- TEST -- ASSERT | We have good timezone
+      assert:
+        that: "ntz.stdout == dbs_timezone"
+    - name: -- TEST -- COMMAND | Date
+      command: date
+      changed_when: false
